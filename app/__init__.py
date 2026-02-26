@@ -40,6 +40,10 @@ def create_app(config_class=Config):
     app.register_blueprint(social_bp, url_prefix='/social')
     app.register_blueprint(gamification_bp, url_prefix='/gamification')
 
+    # Initialize Google OAuth once at startup
+    from app.blueprints.auth.routes import init_oauth
+    init_oauth(app)
+
     # Root redirect
     @app.route('/')
     def index():
