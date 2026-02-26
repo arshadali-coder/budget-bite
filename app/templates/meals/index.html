@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Meal Planner{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🍽️ <span>Meal Planner</span></h1>
+        <p class="page-subtitle">Plan meals, save money, eat healthy</p>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <form method="POST" action="{{ url_for('meals.auto_plan') }}" style="display: inline;">
+            <button type="submit" class="btn btn-success" id="auto-plan-btn">🤖 Auto Plan Week</button>
+        </form>
+        <a href="{{ url_for('meals.add') }}" class="btn btn-primary" id="add-meal-btn">➕ Add Meal</a>
+    </div>
+</div>
+
+<div class="page-body">
+    <!-- Smart Suggestion -->
+    <div class="ai-banner animate-fade-in-up">
+        <span class="ai-banner-icon">💡</span>
+        <div class="ai-banner-content">
+            <div class="ai-banner-label">Smart Suggestion</div>
+            <div class="ai-banner-text">{{ suggestion }}</div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 12px; color: var(--text-muted);">Food Budget Left</div>
+            <div style="font-size: 20px; font-weight: 800; color: var(--accent-secondary);">{{ currency }}{{
+                food_budget_left|int }}</div>
+        </div>
+    </div>
+
+    <!-- Today's Meals & Stats -->
+    <div class="grid grid-2 mb-3">
+        <div class="card animate-fade-in-up delay-1">
+            <div class="card-header">
+                <div class="card-header-title">☀️ Today's Meals</div>
+            </div>
+            <div class="card-body">
+                {% for meal in today_meals %}
+                <div class="meal-card {% if meal.is_completed %}completed{% endif %}" style="margin-bottom: 10px;">
+                    <div class="meal-card-icon {{ meal.meal_type|lower }}">
+                        {% if meal.meal_type == 'Breakfast' %}🌅{% elif meal.meal_type == 'Lunch' %}☀️{% elif
+                        meal.meal_type == 'Dinner' %}🌙{% else %}🍿{% endif %}
+                    </div>
+                    <div class="meal-card-info">
+                        <div class="meal-card-name">{{ meal.name }}</div>
+                        <div class="meal-card-meta">
+                            <span>{{ meal.calories }} cal</span>
+                            <span>{{ meal.protein }}g protein</span>
+                            <span>{{ meal.source }}</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="meal-card-cost">{{ currency }}{{ meal.cost|int }}</div>
+                        <div style="display: flex; gap: 4px; margin-top: 4px;">
+                            {% if not meal.is_completed %}
+                            <form method="POST" action="{{ url_for('meals.complete', meal_id=meal.id) }}"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm" title="Complete & log">✅</button>
+                            </form>
+                            {% endif %}
+                            <form method="POST" action="{{ url_for('meals.delete', meal_id=meal.id) }}"
+                                style="display: inline;">
+                                <button type="submit" class="btn btn-ghost btn-sm" title="Remove">🗑️</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not today_meals %}
+                <div class="empty-state">
+                    <span class="empty-state-icon">🍽️</span>
+                    <p class="empty-state-text">No meals planned today</p>
+                </div>
+                {% endif %}
+
+                {% if today_meals %}
+                <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px; margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary);">Total</span>
+                        <span style="font-weight: 700;">{{ currency }}{{ total_cost|int }} • {{ total_calories }} cal •
+                            {{ total_protein|int }}g protein</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Cost Comparison -->
+        <div class="card animate-fade-in-up delay-2">
+            <div class="card-header">
+                <div class="card-header-title">📊 Cost Comparison</div>
+            </div>
+            <div class="card-body">
+                <div class="comparison-bar">
+                    <div class="comparison-label">Mess</div>
+                    <div class="comparison-track">
+                        <div class="comparison-fill"
+                            style="width: {{ (mess_avg / [mess_avg, canteen_avg, 300]|max * 100)|int }}%; background: var(--gradient-success);">
+                            {{ currency }}{{ mess_avg|int }}/meal</div>
+                    </div>
+                </div>
+                <div class="comparison-bar">
+                    <div class="comparison-label">Canteen</div>
+                    <div class="comparison-track">
+                        <div class="comparison-fill"
+                            style="width: {{ (canteen_avg / [mess_avg, canteen_avg, 300]|max * 100)|int }}%; background: var(--gradient-warning);">
+                            {{ currency }}{{ canteen_avg|int }}/meal</div>
+                    </div>
+                </div>
+                <div class="comparison-bar">
+                    <div class="comparison-label">Delivery</div>
+                    <div class="comparison-track">
+                        <div class="comparison-fill" style="width: 90%; background: var(--gradient-danger);">₹200+/meal
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insight-card success mt-2">
+                    <span class="insight-icon">💰</span>
+                    <span class="insight-text">Mess meals save ₹{{ (canteen_avg - mess_avg)|int }}+ per meal vs
+                        canteen</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Plan -->
+    <div class="card animate-fade-in-up delay-3">
+        <div class="card-header">
+            <div class="card-header-title">📅 Weekly Meal Plan</div>
+        </div>
+        <div class="card-body" style="padding: 12px;">
+            <div class="grid grid-auto" style="gap: 12px;">
+                {% for day_name, day_data in week_meals.items() %}
+                <div style="background: var(--bg-elevated); border-radius: var(--radius-md); padding: 14px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 13px;">{{ day_name[:3] }}</span>
+                        <span style="font-size: 12px; color: var(--text-muted);">{{ currency }}{{ day_data.total|int
+                            }}</span>
+                    </div>
+                    {% if day_data.meals %}
+                    {% for meal in day_data.meals %}
+                    <div
+                        style="font-size: 12px; padding: 4px 0; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                        <span>{{ meal.meal_type[:1] }} {{ meal.name[:18] }}</span>
+                        <span>{{ currency }}{{ meal.cost|int }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0;">—</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

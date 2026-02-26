@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Add Expense{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">➕ <span>Add Expense</span></h1>
+        <p class="page-subtitle">Log your spending quickly</p>
+    </div>
+    <a href="{{ url_for('expenses.index') }}" class="btn btn-ghost">← Back to Expenses</a>
+</div>
+
+<div class="page-body">
+    <div style="max-width: 600px;">
+        <div class="card animate-fade-in-up">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('expenses.add') }}" id="add-expense-form">
+                    <div class="form-group">
+                        <label class="form-label">Amount (₹)</label>
+                        <input type="number" name="amount" class="form-control" placeholder="Enter amount" step="1"
+                            min="1" required autofocus id="amount-input"
+                            style="font-size: 24px; font-weight: 700; padding: 16px;">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="form-control" id="category-select"
+                                onchange="toggleFoodFields()">
+                                {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="date" class="form-control" value="{{ today }}" id="date-input">
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="food-fields" style="display: none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Food Type</label>
+                                <select name="subcategory" class="form-control" id="subcategory-select">
+                                    {% for sub in food_subcategories %}
+                                    <option value="{{ sub }}">{{ sub }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Meal</label>
+                                <select name="meal_type" class="form-control" id="meal-type-select">
+                                    <option value="">Select meal</option>
+                                    <option value="Breakfast">🌅 Breakfast</option>
+                                    <option value="Lunch">☀️ Lunch</option>
+                                    <option value="Dinner">🌙 Dinner</option>
+                                    <option value="Snack">🍿 Snack</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Description (optional)</label>
+                        <input type="text" name="description" class="form-control"
+                            placeholder="e.g. Mess lunch, Auto to college" id="description-input">
+                    </div>
+
+                    <!-- Quick amount buttons -->
+                    <div style="margin-bottom: 20px;">
+                        <label class="form-label">Quick Amount</label>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            {% for amt in [10, 20, 30, 50, 100, 150, 200, 500] %}
+                            <button type="button" class="btn btn-ghost btn-sm"
+                                onclick="document.getElementById('amount-input').value={{ amt }}">₹{{ amt }}</button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-expense-btn">
+                        ✅ Add Expense
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function toggleFoodFields() {
+        const cat = document.getElementById('category-select').value;
+        document.getElementById('food-fields').style.display = cat === 'Food' ? 'block' : 'none';
+    }
+    toggleFoodFields();
+</script>
+{% endblock %}

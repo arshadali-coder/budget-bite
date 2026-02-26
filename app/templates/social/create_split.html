@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Create Split{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">➕ <span>New Bill Split</span></h1>
+        <p class="page-subtitle">Split an expense with your friends</p>
+    </div>
+    <a href="{{ url_for('social.index') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="page-body">
+    <div style="max-width: 600px;">
+        <div class="card animate-fade-in-up">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('social.create_split') }}" id="create-split-form">
+                    <div class="form-group">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Dinner at canteen"
+                            required id="split-title-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Total Amount (₹)</label>
+                        <input type="number" name="total_amount" class="form-control" placeholder="500" min="1" required
+                            id="split-amount-input" style="font-size: 20px; font-weight: 700;">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Split Type</label>
+                        <select name="split_type" class="form-control" id="split-type-input">
+                            <option value="equal">Equal Split</option>
+                        </select>
+                    </div>
+
+                    <div id="participants-container">
+                        <label class="form-label">Friends</label>
+                        <div class="form-group">
+                            <input type="text" name="participant_name" class="form-control" placeholder="Friend's name"
+                                required>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-ghost btn-sm mb-3" onclick="addParticipant()"
+                        id="add-friend-btn">
+                        ➕ Add Another Friend
+                    </button>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-split-btn">🤝 Create
+                        Split</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addParticipant() {
+        const container = document.getElementById('participants-container');
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.innerHTML = '<input type="text" name="participant_name" class="form-control" placeholder="Friend\'s name">';
+        container.appendChild(div);
+    }
+</script>
+{% endblock %}

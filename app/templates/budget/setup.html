@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Setup Budget{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">⚙️ <span>Budget Setup</span></h1>
+        <p class="page-subtitle">Configure your monthly budget allocation</p>
+    </div>
+    <a href="{{ url_for('budget.index') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="page-body">
+    <div style="max-width: 600px;">
+        <div class="card animate-fade-in-up">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('budget.setup') }}" id="budget-setup-form">
+                    <div class="form-group">
+                        <label class="form-label">Total Monthly Budget (₹)</label>
+                        <input type="number" name="total_amount" class="form-control"
+                            value="{{ budget.total_amount|int if budget else current_user.monthly_budget|int }}"
+                            min="1000" step="500" required id="total-budget-input"
+                            style="font-size: 20px; font-weight: 700;">
+                    </div>
+
+                    <h3
+                        style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 16px; margin-top: 24px;">
+                        📊 Category Allocation</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">🍽️ Food</label>
+                        <input type="number" name="food_allocation" class="form-control"
+                            value="{{ budget.food_allocation|int if budget else (current_user.monthly_budget * 0.5)|int }}"
+                            id="food-alloc">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">🚗 Travel</label>
+                        <input type="number" name="travel_allocation" class="form-control"
+                            value="{{ budget.travel_allocation|int if budget else (current_user.monthly_budget * 0.18)|int }}"
+                            id="travel-alloc">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">📚 Academic</label>
+                        <input type="number" name="academic_allocation" class="form-control"
+                            value="{{ budget.academic_allocation|int if budget else (current_user.monthly_budget * 0.12)|int }}"
+                            id="academic-alloc">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">🎮 Entertainment</label>
+                        <input type="number" name="entertainment_allocation" class="form-control"
+                            value="{{ budget.entertainment_allocation|int if budget else (current_user.monthly_budget * 0.12)|int }}"
+                            id="entertainment-alloc">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">🆘 Emergency Reserve</label>
+                        <input type="number" name="emergency_reserve" class="form-control"
+                            value="{{ budget.emergency_reserve|int if budget else (current_user.monthly_budget * 0.08)|int }}"
+                            id="emergency-alloc">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg mt-2" id="save-budget-btn">💾 Save
+                        Budget</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Welcome back, <span>{{ current_user.name.split()[0] }}</span> 👋</h1>
+        <p class="page-subtitle">Here's your financial overview for today</p>
+    </div>
+    <a href="{{ url_for('expenses.add') }}" class="btn btn-primary" id="add-expense-btn">
+        ➕ Add Expense
+    </a>
+</div>
+
+<div class="page-body">
+    <!-- AI Insight Banner -->
+    <div class="ai-banner animate-fade-in-up">
+        <span class="ai-banner-icon">🧠</span>
+        <div class="ai-banner-content">
+            <div class="ai-banner-label">AI Insight</div>
+            <div class="ai-banner-text">{{ ai_insight }}</div>
+        </div>
+        <span class="status-badge {{ ai_insight_type }}">
+            {% if ai_insight_type == 'success' %}On Track{% elif ai_insight_type == 'warning' %}Caution{% else %}Alert{%
+            endif %}
+        </span>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-4 mb-3">
+        <div class="stat-card primary animate-fade-in-up delay-1" id="stat-today-spent">
+            <div class="stat-card-icon">💳</div>
+            <div class="stat-card-label">Today's Spending</div>
+            <div class="stat-card-value">{{ currency }}{{ "%.0f"|format(today_spent) }}</div>
+            <div class="stat-card-change {% if today_spent <= daily_limit %}positive{% else %}negative{% endif %}">
+                {% if today_spent <= daily_limit %} ✅ Within limit ({{ currency }}{{ "%.0f" |format(daily_limit) }}) {%
+                    else %} ⚠️ Over limit by {{ currency }}{{ "%.0f" |format(today_spent - daily_limit) }} {% endif %}
+                    </div>
+            </div>
+
+            <div class="stat-card success animate-fade-in-up delay-2" id="stat-daily-limit">
+                <div class="stat-card-icon">🎯</div>
+                <div class="stat-card-label">Daily Budget</div>
+                <div class="stat-card-value">{{ currency }}{{ "%.0f"|format(daily_limit) }}</div>
+                <div class="stat-card-change positive">{{ remaining_days }} days remaining</div>
+            </div>
+
+            <div class="stat-card warning animate-fade-in-up delay-3" id="stat-month-spent">
+                <div class="stat-card-icon">📅</div>
+                <div class="stat-card-label">Monthly Spent</div>
+                <div class="stat-card-value">{{ currency }}{{ "%.0f"|format(month_spent) }}</div>
+                <div class="stat-card-change {% if budget_used_pct < 70 %}positive{% else %}negative{% endif %}">
+                    {{ "%.1f"|format(budget_used_pct) }}% of {{ currency }}{{ "%.0f"|format(current_user.monthly_budget)
+                    }}
+                </div>
+            </div>
+
+            <div class="stat-card {% if remaining_budget > 0 %}info{% else %}danger{% endif %} animate-fade-in-up delay-4"
+                id="stat-remaining">
+                <div class="stat-card-icon">💰</div>
+                <div class="stat-card-label">Remaining</div>
+                <div class="stat-card-value">{{ currency }}{{ "%.0f"|format(remaining_budget) }}</div>
+                <div class="stat-card-change {% if predicted_balance > 0 %}positive{% else %}negative{% endif %}">
+                    Predicted: {{ currency }}{{ "%.0f"|format(predicted_balance) }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Progress -->
+        <div class="card mb-3 animate-fade-in-up delay-2">
+            <div class="card-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div>
+                        <span style="font-size: 14px; font-weight: 600;">Budget Health</span>
+                        <span class="status-badge {{ budget_status }}" style="margin-left: 8px;">{{ status_message
+                            }}</span>
+                    </div>
+                    <span style="font-size: 13px; color: var(--text-muted);">{{ "%.1f"|format(budget_used_pct) }}%
+                        used</span>
+                </div>
+                <div class="progress-bar-wrapper progress-lg">
+                    <div class="progress-bar {% if budget_used_pct < 60 %}success{% elif budget_used_pct < 85 %}warning{% else %}danger{% endif %}"
+                        style="width: {{ budget_used_pct }}%"></div>
+                </div>
+                <div
+                    style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                    <span>Day {{ day_progress_pct|round|int }}% through month</span>
+                    <span>Budget {{ "%.1f"|format(budget_used_pct) }}% used</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mb-3">
+            <!-- Weekly Spending Chart -->
+            <div class="card animate-fade-in-up delay-3">
+                <div class="card-header">
+                    <div class="card-header-title">📈 Weekly Spending</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Distribution -->
+            <div class="card animate-fade-in-up delay-4">
+                <div class="card-header">
+                    <div class="card-header-title">🎯 Category Breakdown</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mb-3">
+            <!-- Today's Meals -->
+            <div class="card animate-fade-in-up delay-3">
+                <div class="card-header">
+                    <div class="card-header-title">🍽️ Today's Meals</div>
+                    <a href="{{ url_for('meals.index') }}" class="btn btn-ghost btn-sm">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if today_meals %}
+                    {% for meal in today_meals %}
+                    <div class="meal-card {% if meal.is_completed %}completed{% endif %}" style="margin-bottom: 10px;">
+                        <div class="meal-card-icon {{ meal.meal_type|lower }}">
+                            {% if meal.meal_type == 'Breakfast' %}🌅{% elif meal.meal_type == 'Lunch' %}☀️{% elif
+                            meal.meal_type == 'Dinner' %}🌙{% else %}🍿{% endif %}
+                        </div>
+                        <div class="meal-card-info">
+                            <div class="meal-card-name">{{ meal.name }}</div>
+                            <div class="meal-card-meta">
+                                <span>{{ meal.meal_type }}</span>
+                                <span>{{ meal.calories }} cal</span>
+                                <span>{{ meal.source }}</span>
+                            </div>
+                        </div>
+                        <div class="meal-card-cost">{{ currency }}{{ meal.cost|int }}</div>
+                    </div>
+                    {% endfor %}
+                    <div
+                        style="display: flex; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
+                        <span style="font-size: 13px; color: var(--text-secondary);">Total meal cost</span>
+                        <span style="font-weight: 700; font-size: 16px;">{{ currency }}{{ total_meal_cost|int }}</span>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🍽️</span>
+                        <p class="empty-state-text">No meals planned for today</p>
+                        <a href="{{ url_for('meals.add') }}" class="btn btn-primary btn-sm">Plan a Meal</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="card animate-fade-in-up delay-4">
+                <div class="card-header">
+                    <div class="card-header-title">💳 Recent Expenses</div>
+                    <a href="{{ url_for('expenses.index') }}" class="btn btn-ghost btn-sm">View All</a>
+                </div>
+                <div class="card-body" style="padding: 8px 0;">
+                    {% if recent_txns %}
+                    {% for txn in recent_txns %}
+                    <div style="display: flex; align-items: center; padding: 10px 24px; gap: 12px; transition: background 0.15s;"
+                        onmouseover="this.style.background='rgba(99,102,241,0.04)'"
+                        onmouseout="this.style.background=''">
+                        <span class="category-tag {{ txn.category|lower }}">{{ txn.category }}</span>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 500;">{{ txn.description or txn.category }}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">{{ txn.date.strftime('%b %d, %I:%M
+                                %p') }}</div>
+                        </div>
+                        <span style="font-weight: 700; font-variant-numeric: tabular-nums;">{{ currency }}{{
+                            txn.amount|int }}</span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="empty-state-icon">📝</span>
+                        <p class="empty-state-text">No expenses logged yet</p>
+                        <a href="{{ url_for('expenses.add') }}" class="btn btn-primary btn-sm">Add First Expense</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-3 mb-3">
+            <!-- Smart Alerts -->
+            <div class="card animate-fade-in-up delay-4">
+                <div class="card-header">
+                    <div class="card-header-title">🔔 Alerts</div>
+                    <a href="{{ url_for('alerts.index') }}" class="btn btn-ghost btn-sm">All</a>
+                </div>
+                <div class="card-body" style="padding: 8px 16px;">
+                    {% for alert in recent_alerts %}
+                    <div class="notification-item {% if not alert.is_read %}unread{% endif %}"
+                        style="margin-bottom: 4px;">
+                        <div class="notification-icon">{{ alert.icon }}</div>
+                        <div class="notification-content">
+                            <div class="notification-title">{{ alert.title }}</div>
+                            <div class="notification-message">{{ alert.message }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not recent_alerts %}
+                    <div class="text-center" style="padding: 20px;">
+                        <span style="font-size: 24px;">✅</span>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">All caught up!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Savings Goals -->
+            <div class="card animate-fade-in-up delay-5">
+                <div class="card-header">
+                    <div class="card-header-title">🎯 Savings Goals</div>
+                    <a href="{{ url_for('gamification.index') }}" class="btn btn-ghost btn-sm">Manage</a>
+                </div>
+                <div class="card-body">
+                    {% for goal in goals %}
+                    <div style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span style="font-size: 13px; font-weight: 600;">{{ goal.name }}</span>
+                            <span style="font-size: 12px; color: var(--text-muted);">{{ currency }}{{
+                                goal.current_amount|int }} / {{ currency }}{{ goal.target_amount|int }}</span>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar primary" style="width: {{ goal.progress }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if not goals %}
+                    <div class="text-center" style="padding: 20px;">
+                        <span style="font-size: 24px;">💎</span>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">Set a savings goal!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card animate-fade-in-up delay-5">
+                <div class="card-header">
+                    <div class="card-header-title">🏆 Achievements</div>
+                </div>
+                <div class="card-body text-center">
+                    <div class="streak-widget">
+                        <span class="streak-fire">🔥</span>
+                        <div class="streak-number">{{ badge_count }}</div>
+                        <div class="streak-label">Badges Earned</div>
+                    </div>
+                    <a href="{{ url_for('gamification.index') }}" class="btn btn-ghost btn-sm btn-block mt-2">View All
+                        Achievements</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Add -->
+        <a href="{{ url_for('expenses.add') }}" class="quick-add-widget animate-fade-in-up delay-5"
+            id="quick-add-widget">
+            <div class="quick-add-icon">⚡</div>
+            <div class="quick-add-text">Quick Add Expense</div>
+        </a>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        // Weekly Spending Chart
+        const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+        const weeklyData = {{ weekly_data| tojson }};
+        new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: weeklyData.map(d => d.day),
+                datasets: [{
+                    label: 'Spent',
+                    data: weeklyData.map(d => d.amount),
+                    backgroundColor: weeklyData.map(d =>
+                        d.amount > {{ daily_limit }} ? 'rgba(239, 68, 68, 0.7)' : 'rgba(99, 102, 241, 0.7)'
+                ),
+            borderRadius: 8,
+                borderSkipped: false,
+                    barThickness: 28,
+            }]
+        },
+        options: {
+            responsive: true,
+                maintainAspectRatio: false,
+                    plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1f35',
+                        titleColor: '#f1f5f9',
+                            bodyColor: '#94a3b8',
+                                borderColor: 'rgba(99,102,241,0.2)',
+                                    borderWidth: 1,
+                                        cornerRadius: 8,
+                                            callbacks: {
+                        label: ctx => `₹${ctx.raw.toFixed(0)}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#64748b', font: { size: 11, weight: 600 } }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: {
+                        color: '#64748b',
+                            font: { size: 11 },
+                        callback: v => `₹${v}`
+                    }
+                }
+            }
+        }
+    });
+
+        // Category Chart
+        const catCtx = document.getElementById('categoryChart').getContext('2d');
+        const catData = {{ categories_data| tojson }};
+        const catLabels = Object.keys(catData);
+        const catValues = Object.values(catData);
+        const catColors = {
+            'Food': '#06d6a0', 'Travel': '#38bdf8', 'Academic': '#a78bfa',
+            'Entertainment': '#fbbf24', 'Shopping': '#f472b6', 'Health': '#34d399', 'Misc': '#94a3b8'
+        };
+
+        new Chart(catCtx, {
+            type: 'doughnut',
+            data: {
+                labels: catLabels,
+                datasets: [{
+                    data: catValues,
+                    backgroundColor: catLabels.map(l => catColors[l] || '#94a3b8'),
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#94a3b8',
+                            font: { size: 11, weight: 600 },
+                            padding: 12,
+                            usePointStyle: true,
+                            pointStyleWidth: 8
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1f35',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#94a3b8',
+                        borderColor: 'rgba(99,102,241,0.2)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: ctx => `₹${ctx.raw.toFixed(0)}`
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endblock %}

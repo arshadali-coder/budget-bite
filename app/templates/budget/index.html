@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Budget{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">💰 <span>Budget Manager</span></h1>
+        <p class="page-subtitle">Your smart budget allocation & tracking</p>
+    </div>
+    <a href="{{ url_for('budget.setup') }}" class="btn btn-primary" id="edit-budget-btn">⚙️ Edit Budget</a>
+</div>
+
+<div class="page-body">
+    <!-- Budget Health -->
+    <div class="grid grid-3 mb-3">
+        <div class="stat-card primary animate-fade-in-up delay-1">
+            <div class="stat-card-icon">📋</div>
+            <div class="stat-card-label">Monthly Budget</div>
+            <div class="stat-card-value">{{ currency }}{{ current_user.monthly_budget|int }}</div>
+        </div>
+        <div
+            class="stat-card {% if today_spent <= daily_limit %}success{% else %}danger{% endif %} animate-fade-in-up delay-2">
+            <div class="stat-card-icon">🎯</div>
+            <div class="stat-card-label">Today's Limit</div>
+            <div class="stat-card-value">{{ currency }}{{ daily_limit|int }}</div>
+            <div class="stat-card-change {% if today_spent <= daily_limit %}positive{% else %}negative{% endif %}">
+                Spent: {{ currency }}{{ today_spent|int }}
+            </div>
+        </div>
+        <div class="stat-card warning animate-fade-in-up delay-3">
+            <div class="stat-card-icon">📊</div>
+            <div class="stat-card-label">Budget Pace</div>
+            <div class="stat-card-value" style="font-size: 18px;">{{ pace_message }}</div>
+        </div>
+    </div>
+
+    <!-- Category Budgets -->
+    <div class="card mb-3 animate-fade-in-up delay-2">
+        <div class="card-header">
+            <div class="card-header-title">📊 Category-wise Budget</div>
+        </div>
+        <div class="card-body">
+            {% for cat, allocated in cat_allocations.items() %}
+            {% set spent = cat_spent.get(cat, 0) %}
+            {% set pct = (spent / allocated * 100) if allocated > 0 else 0 %}
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="category-tag {{ cat|lower }}">{{ cat }}</span>
+                    </div>
+                    <div style="font-size: 13px;">
+                        <span style="font-weight: 700;">{{ currency }}{{ spent|int }}</span>
+                        <span style="color: var(--text-muted);"> / {{ currency }}{{ allocated|int }}</span>
+                    </div>
+                </div>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar {% if pct < 60 %}success{% elif pct < 90 %}warning{% else %}danger{% endif %}"
+                        style="width: {{ [pct, 100]|min }}%"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    {{ "%.1f"|format(pct) }}% used • {{ currency }}{{ (allocated - spent)|int }} remaining
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Budget Info -->
+    <div class="grid grid-2 mb-3">
+        <div class="card animate-fade-in-up delay-3">
+            <div class="card-header">
+                <div class="card-header-title">📅 Monthly Overview</div>
+            </div>
+            <div class="card-body">
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Total Budget</span>
+                        <span style="font-weight: 700;">{{ currency }}{{ current_user.monthly_budget|int }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Month Spent</span>
+                        <span style="font-weight: 700;">{{ currency }}{{ month_spent|int }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Remaining</span>
+                        <span style="font-weight: 700; color: var(--accent-secondary);">{{ currency }}{{
+                            (current_user.monthly_budget - month_spent)|int }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-size: 14px; color: var(--text-secondary);">Days Left</span>
+                        <span style="font-weight: 700;">{{ remaining_days }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card animate-fade-in-up delay-4">
+            <div class="card-header">
+                <div class="card-header-title">💡 Smart Tips</div>
+            </div>
+            <div class="card-body">
+                {% if pace_status == 'over' %}
+                <div class="insight-card warning">
+                    <span class="insight-icon">⚡</span>
+                    <span class="insight-text">Reduce spending by ₹{{ ((month_spent - expected_spend) /
+                        remaining_days)|int }} per day to get back on track</span>
+                </div>
+                {% endif %}
+                <div class="insight-card info">
+                    <span class="insight-icon">🍽️</span>
+                    <span class="insight-text">Eating at the mess saves 40-60% compared to delivery apps</span>
+                </div>
+                <div class="insight-card success">
+                    <span class="insight-icon">💰</span>
+                    <span class="insight-text">Set aside ₹{{ (current_user.monthly_budget * 0.1)|int }} this month as
+                        emergency reserve</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Achievements{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🏆 <span>Achievements</span></h1>
+        <p class="page-subtitle">Track your progress and earn rewards</p>
+    </div>
+</div>
+
+<div class="page-body">
+    <!-- Stats Strip -->
+    <div class="grid grid-3 mb-3">
+        <div class="stat-card primary animate-fade-in-up delay-1">
+            <div class="text-center">
+                <div class="streak-fire">🔥</div>
+                <div style="font-size: 36px; font-weight: 800;">{{ streak }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Day Streak</div>
+            </div>
+        </div>
+        <div class="stat-card success animate-fade-in-up delay-2">
+            <div class="text-center">
+                <div style="font-size: 28px;">🏆</div>
+                <div style="font-size: 36px; font-weight: 800;">{{ earned_count }}/{{ total_badges }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Badges Earned</div>
+            </div>
+        </div>
+        <div class="stat-card info animate-fade-in-up delay-3">
+            <div class="text-center">
+                <div style="font-size: 28px;">💰</div>
+                <div style="font-size: 36px; font-weight: 800;">{{ currency }}{{ savings_this_month|int }}</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Estimated Savings</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="card mb-3 animate-fade-in-up delay-2">
+        <div class="card-header">
+            <div class="card-header-title">🎖️ All Badges</div>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-auto" style="gap: 16px;">
+                {% for badge in all_badges %}
+                <div class="badge-item {% if badge.earned %}earned{% else %}locked{% endif %}">
+                    <span class="badge-icon">{{ badge.icon }}</span>
+                    <div class="badge-name">{{ badge.name }}</div>
+                    <div class="badge-desc">{{ badge.desc }}</div>
+                    {% if badge.earned and badge.earned_date %}
+                    <div style="font-size: 10px; color: var(--accent-primary-light); margin-top: 6px;">
+                        Earned {{ badge.earned_date.strftime('%b %d') }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Savings Goals -->
+    <div class="card mb-3 animate-fade-in-up delay-3">
+        <div class="card-header">
+            <div class="card-header-title">🎯 Savings Goals</div>
+        </div>
+        <div class="card-body">
+            {% for goal in goals %}
+            <div
+                style="background: var(--bg-elevated); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div>
+                        <span style="font-size: 15px; font-weight: 700;">{{ goal.name }}</span>
+                        {% if goal.is_completed %}
+                        <span class="status-badge healthy" style="margin-left: 8px;">Completed! 🎉</span>
+                        {% endif %}
+                    </div>
+                    <span style="font-size: 14px; font-weight: 700;">{{ goal.progress }}%</span>
+                </div>
+                <div class="progress-bar-wrapper progress-lg" style="margin-bottom: 8px;">
+                    <div class="progress-bar {% if goal.progress < 30 %}danger{% elif goal.progress < 70 %}warning{% else %}success{% endif %}"
+                        style="width: {{ goal.progress }}%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; color: var(--text-muted);">{{ currency }}{{ goal.current_amount|int }}
+                        / {{ currency }}{{ goal.target_amount|int }}</span>
+                    {% if not goal.is_completed %}
+                    <div style="display: flex; gap: 6px;">
+                        <form method="POST" action="{{ url_for('gamification.update_goal', goal_id=goal.id) }}"
+                            style="display: flex; gap: 4px;">
+                            <input type="number" name="add_amount" class="form-control"
+                                style="width: 80px; padding: 6px 10px; font-size: 12px;" placeholder="₹" min="1">
+                            <button type="submit" class="btn btn-success btn-sm">Add</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('gamification.delete_goal', goal_id=goal.id) }}"
+                            style="display: inline;" onsubmit="return confirm('Delete this goal?')">
+                            <button type="submit" class="btn btn-ghost btn-sm">🗑️</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if goal.deadline %}
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">⏰ Deadline: {{
+                    goal.deadline.strftime('%b %d, %Y') }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Add New Goal -->
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-top: 8px;">
+                <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">➕ New Savings Goal</h4>
+                <form method="POST" action="{{ url_for('gamification.add_goal') }}" id="add-goal-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" name="name" class="form-control"
+                                placeholder="Goal name (e.g. New Headphones)" required id="goal-name-input">
+                        </div>
+                        <div class="form-group">
+                            <input type="number" name="target_amount" class="form-control" placeholder="Target ₹"
+                                min="100" required id="goal-target-input">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="date" name="deadline" class="form-control" id="goal-deadline-input">
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block" id="submit-goal-btn">🎯 Create
+                                Goal</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

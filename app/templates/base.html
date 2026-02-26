@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Budget Bite - Smart financial and meal planning platform for students">
+    <title>{% block title %}Budget Bite{% endblock %} | Student Budget Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- Floating glassmorphism background orbs -->
+    <div class="bg-orbs">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+        <div class="bg-orb bg-orb-4"></div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <button class="mobile-toggle" onclick="toggleSidebar()" id="menu-toggle">☰</button>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">🍕</div>
+                    <div class="sidebar-logo-text">Budget Bite</div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Main</div>
+                    <a href="{{ url_for('dashboard.home') }}"
+                        class="nav-item {% if request.endpoint and 'dashboard' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">📊</span> Dashboard
+                    </a>
+                    <a href="{{ url_for('expenses.index') }}"
+                        class="nav-item {% if request.endpoint and 'expenses' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">💳</span> Expenses
+                    </a>
+                    <a href="{{ url_for('budget.index') }}"
+                        class="nav-item {% if request.endpoint and 'budget' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">💰</span> Budget
+                    </a>
+                    <a href="{{ url_for('meals.index') }}"
+                        class="nav-item {% if request.endpoint and 'meals' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">🍽️</span> Meal Planner
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Insights</div>
+                    <a href="{{ url_for('analytics.index') }}"
+                        class="nav-item {% if request.endpoint and 'analytics' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">📈</span> Analytics
+                    </a>
+                    <a href="{{ url_for('alerts.index') }}"
+                        class="nav-item {% if request.endpoint and 'alerts' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">🔔</span> Alerts
+                        {% if unread_alerts > 0 %}
+                        <span class="nav-badge">{{ unread_alerts }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+
+                <div class="nav-section">
+                    <div class="nav-section-title">Social</div>
+                    <a href="{{ url_for('social.index') }}"
+                        class="nav-item {% if request.endpoint and 'social' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">🤝</span> Split Bills
+                    </a>
+                    <a href="{{ url_for('gamification.index') }}"
+                        class="nav-item {% if request.endpoint and 'gamification' in request.endpoint %}active{% endif %}">
+                        <span class="nav-item-icon">🏆</span> Achievements
+                    </a>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('auth.logout') }}" class="sidebar-user">
+                    <div class="sidebar-avatar">
+                        {% if current_user.avatar %}
+                        <img src="{{ current_user.avatar }}" alt="{{ current_user.name }}">
+                        {% else %}
+                        {{ current_user.name[0].upper() }}
+                        {% endif %}
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name">{{ current_user.name }}</div>
+                        <div class="sidebar-user-role">Sign Out →</div>
+                    </div>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-container" style="padding-top: 16px;">
+                {% for category, message in messages %}
+                <div class="alert-banner {{ category }}" role="alert">
+                    {% if category == 'success' %}✅{% elif category == 'error' %}❌{% elif category == 'warning' %}⚠️{%
+                    else %}ℹ️{% endif %}
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% else %}
+    {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('open');
+        }
+
+        // Auto-dismiss flash messages
+        setTimeout(() => {
+            document.querySelectorAll('.alert-banner').forEach(el => {
+                el.style.transition = 'opacity 0.5s, transform 0.5s';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(-10px)';
+                setTimeout(() => el.remove(), 500);
+            });
+        }, 4500);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">📈 <span>Analytics</span></h1>
+        <p class="page-subtitle">Deep insights into your spending habits</p>
+    </div>
+</div>
+
+<div class="page-body">
+    <!-- Summary Cards -->
+    <div class="grid grid-4 mb-3">
+        <div class="stat-card primary animate-fade-in-up delay-1">
+            <div class="stat-card-label">Month Spent</div>
+            <div class="stat-card-value">{{ currency }}{{ month_spent|int }}</div>
+        </div>
+        <div class="stat-card success animate-fade-in-up delay-2">
+            <div class="stat-card-label">Daily Average</div>
+            <div class="stat-card-value">{{ currency }}{{ daily_avg|int }}</div>
+        </div>
+        <div class="stat-card info animate-fade-in-up delay-3">
+            <div class="stat-card-label">This Week</div>
+            <div class="stat-card-value">{{ currency }}{{ this_week_spent|int }}</div>
+            <div class="stat-card-change {% if week_change <= 0 %}positive{% else %}negative{% endif %}">
+                {% if week_change <= 0 %}↓{% else %}↑{% endif %} {{ "%.0f" |format(week_change_pct|abs) }}% vs last week
+                    </div>
+            </div>
+            <div
+                class="stat-card {% if top_expense and top_expense.amount > daily_avg * 2 %}danger{% else %}warning{% endif %} animate-fade-in-up delay-4">
+                <div class="stat-card-label">Top Expense</div>
+                <div class="stat-card-value" style="font-size: 20px;">
+                    {% if top_expense %}{{ currency }}{{ top_expense.amount|int }}{% else %}—{% endif %}
+                </div>
+                {% if top_expense %}<div style="font-size: 12px; color: var(--text-muted);">{{ top_expense.description
+                    or top_expense.category }}</div>{% endif %}
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-2 mb-3">
+            <div class="card animate-fade-in-up delay-2">
+                <div class="card-header">
+                    <div class="card-header-title">📊 Daily Spending Trend</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container chart-container-lg">
+                        <canvas id="dailyTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate-fade-in-up delay-3">
+                <div class="card-header">
+                    <div class="card-header-title">🎯 Category Distribution</div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container chart-container-lg">
+                        <canvas id="categoryPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mb-3">
+            <!-- Weekday vs Weekend -->
+            <div class="card animate-fade-in-up delay-3">
+                <div class="card-header">
+                    <div class="card-header-title">📅 Weekday vs Weekend</div>
+                </div>
+                <div class="card-body">
+                    <div class="comparison-bar">
+                        <div class="comparison-label">Weekday</div>
+                        <div class="comparison-track">
+                            <div class="comparison-fill"
+                                style="width: {{ (weekday_avg / [weekday_avg, weekend_avg, 1]|max * 100)|int }}%; background: var(--gradient-primary);">
+                                {{ currency }}{{ weekday_avg|int }}/day</div>
+                        </div>
+                    </div>
+                    <div class="comparison-bar">
+                        <div class="comparison-label">Weekend</div>
+                        <div class="comparison-track">
+                            <div class="comparison-fill"
+                                style="width: {{ (weekend_avg / [weekday_avg, weekend_avg, 1]|max * 100)|int }}%; background: var(--gradient-warning);">
+                                {{ currency }}{{ weekend_avg|int }}/day</div>
+                        </div>
+                    </div>
+
+                    {% if weekend_avg > weekday_avg %}
+                    <div class="insight-card warning mt-2">
+                        <span class="insight-icon">📅</span>
+                        <span class="insight-text">Weekend spending is {{ "%.0f"|format(((weekend_avg / [weekday_avg,
+                            1]|max) - 1) * 100) }}% higher</span>
+                    </div>
+                    {% else %}
+                    <div class="insight-card success mt-2">
+                        <span class="insight-icon">✅</span>
+                        <span class="insight-text">Great! Your weekend spending is controlled</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Food Breakdown -->
+            <div class="card animate-fade-in-up delay-4">
+                <div class="card-header">
+                    <div class="card-header-title">🍕 Food Spending Breakdown</div>
+                </div>
+                <div class="card-body">
+                    {% if food_breakdown %}
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="foodBreakdownChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <span class="empty-state-icon">🍽️</span>
+                        <p class="empty-state-text">No food data yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Behavioral Insights -->
+        <div class="card animate-fade-in-up delay-4">
+            <div class="card-header">
+                <div class="card-header-title">🧠 Behavioral Insights</div>
+            </div>
+            <div class="card-body">
+                {% for insight in insights %}
+                <div class="insight-card {{ insight.type }}">
+                    <span class="insight-icon">{{ insight.icon }}</span>
+                    <span class="insight-text">{{ insight.text }}</span>
+                </div>
+                {% endfor %}
+                {% if not insights %}
+                <div class="text-center" style="padding: 20px;">
+                    <p style="color: var(--text-muted);">Not enough data yet for insights. Keep logging! 📝</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}
+    <script>
+        // Daily Trend Chart
+        const dailyData = {{ daily_spending| tojson }};
+        const dailyLimit = {{ current_user.get_daily_limit() }};
+        new Chart(document.getElementById('dailyTrendChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: dailyData.map(d => `Day ${d.day}`),
+                datasets: [{
+                    label: 'Spent',
+                    data: dailyData.map(d => d.amount),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#6366f1',
+                    borderWidth: 2,
+                }, {
+                    label: 'Daily Limit',
+                    data: dailyData.map(() => dailyLimit),
+                    borderColor: 'rgba(239, 68, 68, 0.5)',
+                    borderDash: [5, 5],
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    fill: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#94a3b8', font: { size: 11 }, usePointStyle: true }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1a1f35',
+                        titleColor: '#f1f5f9',
+                        bodyColor: '#94a3b8',
+                        cornerRadius: 8,
+                        callbacks: { label: ctx => `₹${ctx.raw.toFixed(0)}` }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', callback: v => `₹${v}` } }
+                }
+            }
+        });
+
+        // Category Pie
+        const catDist = {{ category_dist| tojson }};
+        const catColors = { 'Food': '#06d6a0', 'Travel': '#38bdf8', 'Academic': '#a78bfa', 'Entertainment': '#fbbf24', 'Shopping': '#f472b6', 'Health': '#34d399', 'Misc': '#94a3b8' };
+        new Chart(document.getElementById('categoryPieChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: catDist.map(d => d[0]),
+                datasets: [{ data: catDist.map(d => d[1]), backgroundColor: catDist.map(d => catColors[d[0]] || '#94a3b8'), borderWidth: 0, hoverOffset: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '60%',
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11, weight: 600 }, padding: 10, usePointStyle: true } },
+                    tooltip: { backgroundColor: '#1a1f35', cornerRadius: 8, callbacks: { label: ctx => ` ₹${ctx.raw.toFixed(0)}` } }
+                }
+            }
+        });
+
+        // Food Breakdown
+        {% if food_breakdown %}
+        const foodData = {{ food_breakdown| tojson }};
+        new Chart(document.getElementById('foodBreakdownChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: foodData.map(d => d[0]),
+                datasets: [{ data: foodData.map(d => d[1]), backgroundColor: ['#06d6a0', '#38bdf8', '#a78bfa', '#fbbf24', '#f472b6', '#34d399'], borderRadius: 8, barThickness: 24 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1f35', cornerRadius: 8, callbacks: { label: ctx => `₹${ctx.raw.toFixed(0)}` } } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', callback: v => `₹${v}` } },
+                    y: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: 600 } } }
+                }
+            }
+        });
+        {% endif %}
+    </script>
+    {% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Setup Your Budget{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 80px); padding: 20px;">
+    <div style="max-width: 520px; width: 100%;">
+        <div class="auth-logo" style="margin-bottom: 32px;">
+            <div class="auth-logo-icon" style="margin: 0 auto 16px;">🎓</div>
+            <h1 style="font-size: 24px; font-weight: 800;">Let's Set Up Your Budget</h1>
+            <p class="auth-subtitle">Tell us about yourself to get personalized insights</p>
+        </div>
+
+        <div class="onboarding-steps">
+            <div class="onboarding-step done"></div>
+            <div class="onboarding-step active"></div>
+            <div class="onboarding-step"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('auth.onboarding') }}">
+                    <div class="form-group">
+                        <label class="form-label">Monthly Budget (₹)</label>
+                        <input type="number" name="monthly_budget" class="form-control" value="5000" min="1000"
+                            max="50000" step="500" required id="monthly-budget-input">
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">This includes all
+                            expenses — food, travel, and more</p>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Living Type</label>
+                            <select name="living_type" class="form-control" id="living-type-select">
+                                <option value="Hostel">🏢 Hostel</option>
+                                <option value="PG">🏠 PG</option>
+                                <option value="Home">🏡 Home</option>
+                                <option value="Flat">🏬 Flat</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Food Preference</label>
+                            <select name="food_preference" class="form-control" id="food-pref-select">
+                                <option value="Vegetarian">🥗 Vegetarian</option>
+                                <option value="Non-Vegetarian">🍗 Non-Vegetarian</option>
+                                <option value="Vegan">🌱 Vegan</option>
+                                <option value="Eggetarian">🥚 Eggetarian</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background: var(--gradient-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+                        <p
+                            style="font-size: 13px; font-weight: 600; color: var(--accent-primary-light); margin-bottom: 4px;">
+                            📊 Your Daily Budget</p>
+                        <p style="font-size: 24px; font-weight: 800;" id="daily-budget-preview">₹167</p>
+                        <p style="font-size: 12px; color: var(--text-muted);">Based on 30 days in a month</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="setup-submit-btn">
+                        🚀 Start Tracking
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const budgetInput = document.getElementById('monthly-budget-input');
+    const preview = document.getElementById('daily-budget-preview');
+    budgetInput.addEventListener('input', () => {
+        const daily = Math.round(budgetInput.value / 30);
+        preview.textContent = `₹${daily}`;
+    });
+</script>
+{% endblock %}

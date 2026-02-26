@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ split.title }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🤝 <span>{{ split.title }}</span></h1>
+        <p class="page-subtitle">Created {{ split.created_at.strftime('%b %d, %Y') }}</p>
+    </div>
+    <a href="{{ url_for('social.index') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="page-body">
+    <div style="max-width: 600px;">
+        <div class="card animate-fade-in-up">
+            <div class="card-body">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div
+                        style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                        Total Amount</div>
+                    <div style="font-size: 40px; font-weight: 800;">{{ currency }}{{ split.total_amount|int }}</div>
+                    <span class="status-badge {% if split.is_settled %}healthy{% else %}warning{% endif %}">
+                        {% if split.is_settled %}✅ All Settled{% else %}⏳ Pending{% endif %}
+                    </span>
+                </div>
+
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--text-secondary); margin-bottom: 12px;">
+                    Participants</h3>
+
+                {% for p in split.participants %}
+                <div class="split-participant {% if p.paid %}paid{% endif %}">
+                    <div class="split-avatar">{{ p.name[0] }}</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; font-weight: 600;">{{ p.name }}{% if p.get('is_creator') %} (You){%
+                            endif %}</div>
+                        <div style="font-size: 20px; font-weight: 800;">{{ currency }}{{ p.share|int }}</div>
+                    </div>
+                    {% if p.paid %}
+                    <span style="color: var(--accent-secondary); font-weight: 600;">✅ Paid</span>
+                    {% else %}
+                    <form method="POST"
+                        action="{{ url_for('social.settle_participant', split_id=split.id, idx=loop.index0) }}">
+                        <button type="submit" class="btn btn-success btn-sm">Mark Paid</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

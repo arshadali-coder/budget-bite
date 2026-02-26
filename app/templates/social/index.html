@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Split Bills{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🤝 <span>Split Bills</span></h1>
+        <p class="page-subtitle">Split expenses with friends easily</p>
+    </div>
+    <a href="{{ url_for('social.create_split') }}" class="btn btn-primary" id="create-split-btn">➕ New Split</a>
+</div>
+
+<div class="page-body">
+    {% if splits %}
+    <div class="grid grid-auto">
+        {% for split in splits %}
+        <div class="card animate-fade-in-up" style="animation-delay: {{ loop.index * 0.1 }}s; opacity: 0;">
+            <div class="card-body">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 700;">{{ split.title }}</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">{{ split.created_at.strftime('%b %d, %Y')
+                            }}</p>
+                    </div>
+                    <span class="status-badge {% if split.is_settled %}healthy{% else %}warning{% endif %}">
+                        {% if split.is_settled %}Settled{% else %}Pending{% endif %}
+                    </span>
+                </div>
+
+                <div style="font-size: 28px; font-weight: 800; margin-bottom: 16px;">
+                    {{ currency }}{{ split.total_amount|int }}
+                </div>
+
+                {% for p in split.participants %}
+                <div class="split-participant {% if p.paid %}paid{% endif %}">
+                    <div class="split-avatar">{{ p.name[0] }}</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 13px; font-weight: 600;">{{ p.name }}</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">{{ currency }}{{ p.share|int }}</div>
+                    </div>
+                    {% if p.paid %}
+                    <span style="font-size: 12px; color: var(--accent-secondary);">✅ Paid</span>
+                    {% else %}
+                    <span style="font-size: 12px; color: var(--accent-warning);">⏳ Pending</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <a href="{{ url_for('social.view_split', split_id=split.id) }}" class="btn btn-ghost btn-sm">View
+                        Details</a>
+                    <form method="POST" action="{{ url_for('social.delete_split', split_id=split.id) }}"
+                        style="display: inline;" onsubmit="return confirm('Delete this split?')">
+                        <button type="submit" class="btn btn-ghost btn-sm">🗑️ Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-state-icon">🤝</span>
+        <p class="empty-state-text">No bill splits yet</p>
+        <a href="{{ url_for('social.create_split') }}" class="btn btn-primary">Create Your First Split</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

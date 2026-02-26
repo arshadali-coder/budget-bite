@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">💳 <span>Expenses</span></h1>
+        <p class="page-subtitle">Track and manage all your spending</p>
+    </div>
+    <a href="{{ url_for('expenses.add') }}" class="btn btn-primary" id="add-expense-btn">➕ Add Expense</a>
+</div>
+
+<div class="page-body">
+    <!-- Category summary cards -->
+    <div class="grid grid-auto mb-3">
+        {% for cat, total in category_totals.items() %}
+        <div class="stat-card {% if cat == 'Food' %}success{% elif cat == 'Travel' %}info{% elif cat == 'Academic' %}primary{% elif cat == 'Entertainment' %}warning{% else %}primary{% endif %} animate-fade-in-up"
+            style="animation-delay: {{ loop.index * 0.1 }}s; opacity: 0;">
+            <div class="stat-card-label">{{ cat }}</div>
+            <div class="stat-card-value" style="font-size: 22px;">{{ currency }}{{ total|int }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body" style="padding: 12px 24px;">
+            <form method="GET" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <select name="category" class="form-control" style="width: auto; min-width: 140px;"
+                    id="filter-category">
+                    <option value="all" {% if current_filter=='all' %}selected{% endif %}>All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if current_filter==cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+                <input type="date" name="date" class="form-control" style="width: auto;" value="{{ date_filter }}"
+                    id="filter-date">
+                <button type="submit" class="btn btn-ghost btn-sm" id="filter-btn">🔍 Filter</button>
+                <a href="{{ url_for('expenses.index') }}" class="btn btn-ghost btn-sm">Clear</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card animate-fade-in-up">
+        <div class="card-body" style="padding: 0;">
+            <div class="table-wrapper">
+                <table class="table" id="expenses-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in transactions.items %}
+                        <tr>
+                            <td style="white-space: nowrap;">{{ txn.date.strftime('%b %d, %I:%M %p') }}</td>
+                            <td>
+                                <div style="font-weight: 500;">{{ txn.description or '—' }}</div>
+                                {% if txn.meal_type %}<span style="font-size: 11px; color: var(--text-muted);">{{
+                                    txn.meal_type }}</span>{% endif %}
+                            </td>
+                            <td><span class="category-tag {{ txn.category|lower }}">{{ txn.category }}</span></td>
+                            <td class="amount">{{ currency }}{{ txn.amount|int }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('expenses.delete', txn_id=txn.id) }}"
+                                    style="display: inline;" onsubmit="return confirm('Delete this expense?')">
+                                    <button type="submit" class="btn btn-ghost btn-sm" title="Delete">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if not transactions.items %}
+            <div class="empty-state">
+                <span class="empty-state-icon">📝</span>
+                <p class="empty-state-text">No expenses found</p>
+                <a href="{{ url_for('expenses.add') }}" class="btn btn-primary btn-sm">Add Expense</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if transactions.pages > 1 %}
+    <div class="pagination">
+        {% if transactions.has_prev %}
+        <a href="{{ url_for('expenses.index', page=transactions.prev_num, category=current_filter) }}">← Prev</a>
+        {% endif %}
+        {% for page in transactions.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page %}
+        <a href="{{ url_for('expenses.index', page=page, category=current_filter) }}"
+            class="{% if page == transactions.page %}active{% endif %}">{{ page }}</a>
+        {% else %}
+        <span>…</span>
+        {% endif %}
+        {% endfor %}
+        {% if transactions.has_next %}
+        <a href="{{ url_for('expenses.index', page=transactions.next_num, category=current_filter) }}">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

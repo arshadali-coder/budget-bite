@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Add Meal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">➕ <span>Plan a Meal</span></h1>
+        <p class="page-subtitle">Add a meal to your daily plan</p>
+    </div>
+    <a href="{{ url_for('meals.index') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div class="page-body">
+    <div style="max-width: 600px;">
+        <div class="card animate-fade-in-up">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('meals.add') }}" id="add-meal-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Meal Type</label>
+                            <select name="meal_type" class="form-control" required id="meal-type-input">
+                                <option value="Breakfast">🌅 Breakfast</option>
+                                <option value="Lunch" selected>☀️ Lunch</option>
+                                <option value="Dinner">🌙 Dinner</option>
+                                <option value="Snack">🍿 Snack</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="date" class="form-control" value="{{ today }}"
+                                id="meal-date-input">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Meal Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Dal Rice + Roti" required
+                            id="meal-name-input">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Cost (₹)</label>
+                            <input type="number" name="cost" class="form-control" placeholder="50" min="0" required
+                                id="meal-cost-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Source</label>
+                            <select name="source" class="form-control" id="meal-source-input">
+                                <option value="Mess">🏢 Mess</option>
+                                <option value="Canteen">🏪 Canteen</option>
+                                <option value="Restaurant">🍽️ Restaurant</option>
+                                <option value="Delivery">🛵 Delivery</option>
+                                <option value="Self">🏠 Self/Home</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Calories</label>
+                            <input type="number" name="calories" class="form-control" placeholder="400" min="0"
+                                id="meal-calories-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Protein (g)</label>
+                            <input type="number" name="protein" class="form-control" placeholder="15" min="0" step="0.5"
+                                id="meal-protein-input">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block btn-lg" id="submit-meal-btn">🍽️ Add
+                        Meal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

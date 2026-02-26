@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">🔔 <span>Alerts & Nudges</span></h1>
+        <p class="page-subtitle">Stay on top of your finances</p>
+    </div>
+    <form method="POST" action="{{ url_for('alerts.mark_all_read') }}">
+        <button type="submit" class="btn btn-ghost" id="mark-all-read-btn">✅ Mark All Read</button>
+    </form>
+</div>
+
+<div class="page-body">
+    {% if alerts %}
+    {% for alert in alerts %}
+    <div class="notification-item {% if not alert.is_read %}unread{% endif %} animate-fade-in-up"
+        style="animation-delay: {{ loop.index * 0.05 }}s; opacity: 0; margin-bottom: 4px;">
+        <div class="notification-icon">{{ alert.icon }}</div>
+        <div class="notification-content">
+            <div class="notification-title">{{ alert.title }}</div>
+            <div class="notification-message">{{ alert.message }}</div>
+            <div class="notification-time">{{ alert.created_at.strftime('%b %d, %I:%M %p') }}</div>
+        </div>
+        {% if not alert.is_read %}
+        <button class="btn btn-ghost btn-sm" onclick="markRead({{ alert.id }})" id="mark-read-{{ alert.id }}">Mark
+            Read</button>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <span class="empty-state-icon">✅</span>
+        <p class="empty-state-text">No alerts! You're all good.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function markRead(alertId) {
+        await fetch(`/alerts/mark-read/${alertId}`, { method: 'POST' });
+        const item = document.getElementById(`mark-read-${alertId}`).closest('.notification-item');
+        item.classList.remove('unread');
+        document.getElementById(`mark-read-${alertId}`).remove();
+    }
+</script>
+{% endblock %}
